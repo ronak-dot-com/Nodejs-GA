@@ -10,12 +10,10 @@ env:
   ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
 
 jobs:
-
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -27,28 +25,28 @@ jobs:
           aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Login ECR
-        id: ecr
+        id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build Image
+      - name: Build, Tag and Push Image
+        env:
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         run: |
-          docker build -t $ECR_REPOSITORY .
+          IMAGE_URI=$REGISTRY/${{ secrets.ECR_REPOSITORY }}:latest
 
-      - name: Tag Image
-        run: |
-          docker tag $ECR_REPOSITORY:latest \
-          ${{ steps.ecr.outputs.registry }}/$ECR_REPOSITORY:latest
+          echo "IMAGE_URI=$IMAGE_URI"
 
-      - name: Push Image
-        run: |
-          docker push \
-          ${{ steps.ecr.outputs.registry }}/$ECR_REPOSITORY:latest
+          docker build -t $IMAGE_URI .
+          docker push $IMAGE_URI
+
+          echo "IMAGE_URI=$IMAGE_URI" >> $GITHUB_ENV
 
       - name: Download Task Definition
         run: |
           aws ecs describe-task-definition \
-          --task-definition ${{ secrets.ECS_TASK_DEFINITION }} \
-          --query taskDefinition > task-definition.json
+            --task-definition ${{ secrets.ECS_TASK_DEFINITION }} \
+            --query taskDefinition \
+            > task-definition.json
 
       - name: Render Task Definition
         id: task-def
@@ -56,7 +54,7 @@ jobs:
         with:
           task-definition: task-definition.json
           container-name: nodejs-container
-          image: ${{ steps.ecr.outputs.registry }}/$ECR_REPOSITORY:latest
+          image: ${{ env.IMAGE_URI }}
 
       - name: Deploy ECS
         uses: aws-actions/amazon-ecs-deploy-task-definition@v2
