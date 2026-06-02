@@ -16,14 +16,6 @@ pipeline {
 
     stages {
 
-        stage('Checkout') {
-
-            steps {
-                git branch: 'main',
-                    url: 'https://github.com/ronak-dot-com/Nodejs-GA.git'
-            }
-        }
-
         stage('Build Docker Image') {
 
             steps {
