@@ -19,7 +19,8 @@ pipeline {
         stage('Checkout') {
 
             steps {
-                git 'https://github.com/ronak-dot-com/Nodejs-GA.git'
+                git branch: 'main',
+                    url: 'https://github.com/ronak-dot-com/Nodejs-GA.git'
             }
         }
 
